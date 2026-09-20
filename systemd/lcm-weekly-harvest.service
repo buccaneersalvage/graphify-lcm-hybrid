@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly LCM harvest into vault lanes + prune old payloads
+After=network-online.target sleep.target
+
+[Service]
+Type=oneshot
+Nice=10
+# Point this at your memory tree (the folder that contains vault/ and lcm/).
+Environment=MEMORY_ROOT=%h/ai-memory
+EnvironmentFile=-%h/.hermes/lcm.env
+WorkingDirectory=%h/ai-memory
+ExecStart=/usr/bin/python3 %h/ai-memory/lcm/weekly_harvest.py --apply

@@ -1,0 +1,10 @@
+[Unit]
+Description=Sunday 03:15 LCM weekly harvest (catch up if the box was asleep)
+
+[Timer]
+OnCalendar=Sun *-*-* 03:15:00
+Persistent=true
+RandomizedDelaySec=180
+
+[Install]
+WantedBy=timers.target

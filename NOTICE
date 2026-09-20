@@ -1,0 +1,36 @@
+graphify-lcm-hybrid
+Copyright 2026 Cap'n Jules / BuccaneerSalvage
+
+This repository is glue between two engines. It is not Graphify and it is not Hermes-LCM.
+GitHub only lets one repo fork one parent, so the two engines live as
+separate public forks under the same org:
+
+  https://github.com/buccaneersalvage/graphify
+    fork of https://github.com/Graphify-Labs/graphify
+  https://github.com/buccaneersalvage/hermes-lcm
+    fork of https://github.com/stephenschoettler/hermes-lcm
+
+-----------------------------------------------------------------------------
+Graphify
+Copyright 2026 Safi Shamsi and the Graphify contributors (Graphify-Labs).
+Licensed under the Apache License, Version 2.0.
+https://github.com/Graphify-Labs/graphify
+PyPI package: graphifyy  (CLI command: graphify)
+
+Portions of Graphify were contributed under the MIT License prior to
+relicensing. See LICENSE-MIT in the Graphify tree.
+-----------------------------------------------------------------------------
+Hermes-LCM (Lossless Context Management)
+Copyright (c) 2026 Stephen Schoettler
+Licensed under the MIT License.
+https://github.com/stephenschoettler/hermes-lcm
+
+Based on the LCM paper by Ehrlich & Blackman (Voltropy PBC, Feb 2026):
+https://papers.voltropy.com/LCM
+Inspired by lossless-claw (Martian Engineering) for OpenClaw:
+https://github.com/martian-engineering/lossless-claw
+-----------------------------------------------------------------------------
+The weekly harvest, gather, and query scripts in this tree are original
+BuccaneerSalvage work (MIT, see LICENSE). They read a Hermes-LCM sqlite
+store and write markdown that Graphify can index. They do not copy
+Graphify or Hermes-LCM source.

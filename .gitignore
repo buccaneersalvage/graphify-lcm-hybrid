@@ -1,0 +1,22 @@
+# Live memory — never commit your notes or sqlite
+/vault/
+/src/
+/graphify-out/
+/MANIFEST.tsv
+lcm/*.db
+lcm/*.db-wal
+lcm/*.db-shm
+lcm/*.lock
+lcm/payloads/
+lcm/backups/
+
+# Secrets
+.env
+*.env
+!*.env.example
+lcm.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
