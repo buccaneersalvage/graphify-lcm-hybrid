@@ -193,43 +193,65 @@ def prune_payloads(apply: bool) -> int:
     return n
 
 
+def _integrity_ok(conn: sqlite3.Connection) -> bool:
+    try:
+        row = conn.execute("PRAGMA integrity_check").fetchone()
+        return bool(row) and str(row[0]) == "ok"
+    except sqlite3.Error:
+        return False
+
+
 def _exec_vacuum(conn: sqlite3.Connection) -> None:
     conn.execute("VACUUM")
 
 
 def backup_and_vacuum(apply: bool) -> None:
+    """Snapshot live sqlite read-only; vacuum and keep only a healthy copy.
+
+    Never opens the live database for write. VACUUM runs on the snapshot.
+    A failing integrity_check discards the snapshot and leaves older backups.
+    """
     if not DB.exists():
         return
     BACKUPS.mkdir(parents=True, exist_ok=True)
     os.chmod(BACKUPS, 0o700)
     dest = BACKUPS / f"lcm-{_now().strftime('%Y%m%d')}.db"
+    tmp = dest.with_name(dest.name + ".tmp")
     print(f"{'BACKUP' if apply else 'DRY-BACKUP'} {dest}")
-    if apply:
+    if not apply:
+        return
+    src = None
+    dst = None
+    try:
         src = sqlite3.connect(f"file:{DB}?mode=ro", uri=True, timeout=30)
-        dst = sqlite3.connect(dest, timeout=30)
-        try:
-            src.execute("PRAGMA busy_timeout = 30000")
-            src.backup(dst)
-        except sqlite3.Error as e:
-            print(f"BACKUP skipped: {e}")
+        src.execute("PRAGMA busy_timeout = 30000")
+        dst = sqlite3.connect(tmp, timeout=30)
+        dst.execute("PRAGMA busy_timeout = 30000")
+        src.backup(dst)
+        if not _integrity_ok(dst):
+            print("BACKUP rejected: integrity_check failed; previous backups kept")
             return
-        finally:
-            dst.close()
-            src.close()
+        try:
+            _exec_vacuum(dst)
+            print("VACUUM ok (backup copy)")
+        except sqlite3.Error as e:
+            print(f"VACUUM skipped on backup copy: {e}")
+        dst.close()
+        dst = None
+        os.replace(tmp, dest)
         old = sorted(BACKUPS.glob("lcm-*.db"))
         for extra in old[:-BACKUP_KEEP]:
             extra.unlink()
             print(f"DEL old backup {extra.name}")
-        try:
-            conn = sqlite3.connect(DB, timeout=30)
-            try:
-                conn.execute("PRAGMA busy_timeout = 30000")
-                _exec_vacuum(conn)
-            finally:
-                conn.close()
-            print("VACUUM ok")
-        except sqlite3.Error as e:
-            print(f"VACUUM skipped (db busy or disk image, backup kept): {e}")
+    except sqlite3.Error as e:
+        print(f"BACKUP skipped: {e}")
+    finally:
+        if dst is not None:
+            dst.close()
+        if src is not None:
+            src.close()
+        if tmp.exists():
+            tmp.unlink()
 
 
 def main() -> int:

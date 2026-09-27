@@ -36,7 +36,7 @@ Chat is the other hold. Hermes with `context.engine: lcm` writes raw messages in
 MEMORY_ROOT=/path/to/this/tree python3 lcm/query.py "that timeout"
 ```
 
-Once a week a systemd timer cherry-picks last-seven-day user/assistant lines into `vault/<lane>/YYYY-MM-DD_lcm-weekly-harvest.md`, drops fat tool dumps older than 14 days, and rotates four sqlite backups. It does not delete vault notes. It does not delete cheap chat text. If sqlite vacuum fails (busy file or a bad disk image), notes and gather still run.
+Once a week a systemd timer cherry-picks last-seven-day user/assistant lines into `vault/<lane>/YYYY-MM-DD_lcm-weekly-harvest.md`, drops fat tool dumps older than 14 days, and rotates four sqlite backups. It snapshots the live database read-only, vacuums the snapshot only, and rejects a snapshot that fails `integrity_check`. It does not delete vault notes. It does not delete cheap chat text. Notes and gather still run if the snapshot is skipped.
 
 `vault/hermes/` is export-only. Do not hand-write rules there. Summaries are cues, not proof. If you need the exact sentence, query sqlite.
 
