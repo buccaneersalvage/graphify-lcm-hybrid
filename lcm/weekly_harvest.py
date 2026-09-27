@@ -193,6 +193,10 @@ def prune_payloads(apply: bool) -> int:
     return n
 
 
+def _exec_vacuum(conn: sqlite3.Connection) -> None:
+    conn.execute("VACUUM")
+
+
 def backup_and_vacuum(apply: bool) -> None:
     if not DB.exists():
         return
@@ -206,6 +210,9 @@ def backup_and_vacuum(apply: bool) -> None:
         try:
             src.execute("PRAGMA busy_timeout = 30000")
             src.backup(dst)
+        except sqlite3.Error as e:
+            print(f"BACKUP skipped: {e}")
+            return
         finally:
             dst.close()
             src.close()
@@ -217,12 +224,12 @@ def backup_and_vacuum(apply: bool) -> None:
             conn = sqlite3.connect(DB, timeout=30)
             try:
                 conn.execute("PRAGMA busy_timeout = 30000")
-                conn.execute("VACUUM")
+                _exec_vacuum(conn)
             finally:
                 conn.close()
             print("VACUUM ok")
-        except sqlite3.OperationalError as e:
-            print(f"VACUUM skipped (db busy, backup kept): {e}")
+        except sqlite3.Error as e:
+            print(f"VACUUM skipped (db busy or disk image, backup kept): {e}")
 
 
 def main() -> int:
@@ -249,11 +256,14 @@ def main() -> int:
         write_harvests(by_lane, day, apply)
         n = prune_payloads(apply)
         print(f"payloads pruned: {n}")
-        backup_and_vacuum(apply)
         rc = 0
         if apply:
             g = subprocess.run(["bash", str(ROOT / "gather.sh")])
             rc = g.returncode
+        try:
+            backup_and_vacuum(apply)
+        except sqlite3.Error as e:
+            print(f"BACKUP/VACUUM skipped (notes and gather already ran): {e}")
         if not by_lane:
             print("no harvest bullets this window")
         return rc

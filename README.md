@@ -1,40 +1,42 @@
-# Graphify vault + Hermes-LCM sqlite hybrid
+<p align="center">
+  <img src="docs/banner.jpg" alt="Treasure map, spyglass, and a galleon at sunset" width="900">
+</p>
 
-Two stores. One job split. Your AIs stop arguing over whose notes are real.
+# Two holds. One ship.
 
-**Graphify** turns markdown facts into a knowledge graph you can query instead of grepping. **Hermes-LCM** keeps every Hermes chat message in sqlite so compaction does not throw the conversation away. This repo is the wiring that makes them share a memory tree without becoming two competing brains.
+**Graphify** is the chart: dated markdown facts you can query instead of grepping. **Hermes-LCM** is the logbook: every chat turn stays in sqlite after compaction. This repo is the rope that ties them to one memory tree.
 
-GitHub will not let one repo fork two parents. The engines are forked on their own:
+GitHub will not let one repo fork two parents. The engines stay on their own:
 
 - [buccaneersalvage/graphify](https://github.com/buccaneersalvage/graphify) — fork of [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify)
 - [buccaneersalvage/hermes-lcm](https://github.com/buccaneersalvage/hermes-lcm) — fork of [stephenschoettler/hermes-lcm](https://github.com/stephenschoettler/hermes-lcm)
 
-Published from [BuccaneerSalvage](https://buccaneersalvage.github.io/). It does not ship anyone's private notes, chat database, or API keys.
+Published from [BuccaneerSalvage](https://buccaneersalvage.github.io/). It does not ship anyone's private notes, chat archive, or API keys.
 
 ## What it does
 
-Write a durable fact once, as a dated markdown file:
+Write a durable fact once:
 
 ```
-vault/<lane>/YYYY-MM-DD_short-slug.md
+vault/<lane>/YYYY-MM-DD-short-slug.md
 ```
 
-Name the `<lane>` folders yourself. Edit `LANES` in `lcm/weekly_harvest.py` so harvest keywords match your work.
+Name the `<lane>` folders yourself. Edit `LANES` in `lcm/weekly_harvest.py` so the weekly pass matches your work.
 
-`gather.sh` copies those notes into `src/` (unique by SHA-256, skips symlinks that point outside the vault) and refreshes a bounded LCM summary index. Then Graphify indexes `src/`. Ask:
+`gather.sh` copies those notes into `src/` (unique by SHA-256, skips symlinks that point outside the vault) and refreshes a bounded summary index. Then Graphify indexes `src/`. Ask:
 
 ```
 cd /path/to/this/tree
 graphify query "what's the backup rule"
 ```
 
-Chat is the other store. Hermes with `context.engine: lcm` writes raw messages into `lcm/lcm.db`. Compaction only shrinks what the model sees. The rows stay. Hermes uses its `lcm_*` tools. Everyone else (Grok, Claude, Kimi, a plain shell) runs:
+Chat is the other hold. Hermes with `context.engine: lcm` writes raw messages into sqlite under this tree. Compaction only shrinks what the model sees. The rows stay. Hermes uses its `lcm_*` tools. Everyone else runs:
 
 ```
 MEMORY_ROOT=/path/to/this/tree python3 lcm/query.py "that timeout"
 ```
 
-Once a week a systemd timer cherry-picks last-seven-day user/assistant lines into `vault/<lane>/YYYY-MM-DD_lcm-weekly-harvest.md`, deletes fat tool dumps in `lcm/payloads/` older than 14 days, and rotates four sqlite backups. It does not delete vault notes. It does not delete cheap chat text.
+Once a week a systemd timer cherry-picks last-seven-day user/assistant lines into `vault/<lane>/YYYY-MM-DD_lcm-weekly-harvest.md`, drops fat tool dumps older than 14 days, and rotates four sqlite backups. It does not delete vault notes. It does not delete cheap chat text. If sqlite vacuum fails (busy file or a bad disk image), notes and gather still run.
 
 `vault/hermes/` is export-only. Do not hand-write rules there. Summaries are cues, not proof. If you need the exact sentence, query sqlite.
 
@@ -59,7 +61,7 @@ The LCM idea is from the [LCM paper](https://papers.voltropy.com/LCM) by Ehrlich
 
 ### This glue
 
-Cap'n Jules / BuccaneerSalvage. MIT. Harvest, gather, query CLI, and the vault layout. See `NOTICE` and `LICENSE`.
+Cap'n Jules / BuccaneerSalvage. MIT. Weekly pass, gather, query CLI, and the vault layout. See `NOTICE` and `LICENSE`.
 
 If you ship a fork, leave those names on the tin.
 
@@ -84,15 +86,13 @@ If you ship a fork, leave those names on the tin.
      engine: lcm
    ```
 
-2. Point LCM sqlite at this tree so every agent hits the same file:
+2. Point sqlite at this tree so every agent hits the same file:
 
    ```
    export MEMORY_ROOT=/path/to/graphify-lcm-hybrid
-   export LCM_DATABASE_PATH=$MEMORY_ROOT/lcm/lcm.db
-   export LCM_LARGE_OUTPUT_EXTERNALIZATION_PATH=$MEMORY_ROOT/lcm/payloads
    ```
 
-   Put those in `~/.hermes/lcm.env` (see `examples/lcm.env.example`). Parent dir of `lcm.db` should not be group-writable. `chmod 700 lcm payloads` is the usual fix.
+   See `examples/lcm.env.example` for the optional path overrides. The sqlite parent dir should not be group-writable. `chmod 700` on that folder is the usual fix.
 
 3. Write notes under `vault/<lane>/`. Run `bash gather.sh`. Then `graphify extract ./src --out .`.
 
@@ -103,24 +103,23 @@ If you ship a fork, leave those names on the tin.
    python3 lcm/weekly_harvest.py --apply
    ```
 
-   Copy `systemd/*.timer` and `systemd/*.service`, fix `MEMORY_ROOT` to your path, then `systemctl --user enable --now lcm-weekly-harvest.timer`.
+   Copy `systemd/*.timer` and `systemd/*.service`, set `MEMORY_ROOT` to your path, then `systemctl --user enable --now lcm-weekly-harvest.timer`.
 
-Do not commit `vault/`, `lcm.db`, `lcm/payloads/`, or `.env`. `.gitignore` already blocks them.
+Do not commit `vault/`, the sqlite file, dump folders, or `.env`. `.gitignore` already blocks them.
 
 ## Layout
 
 ```
 vault/<lane>/     you write dated .md here
-vault/hermes/     regenerable LCM summary index
-lcm/lcm.db        Hermes-LCM sqlite (created at runtime)
-lcm/query.py      CLI search for non-Hermes agents
-lcm/weekly_harvest.py
-gather.sh         export summaries + copy unique vault md into src/
+vault/hermes/     regenerable summary index
+lcm/              sqlite + query CLI + weekly pass
+gather.sh         copy unique vault md into src/
 src/              graphify input (generated)
+docs/banner.jpg   the map on this page
 ```
 
 ## What this is not
 
-Not a second Graphify. Not a second LCM. Not a dump of anyone's private notes or chat logs. If a script path looks like `/home/you/...`, set `MEMORY_ROOT` instead of patching it in.
+Not a second Graphify. Not a second LCM. Not a dump of anyone's private notes or chat logs. If a script path looks like a personal home directory, set `MEMORY_ROOT` instead of patching it.
 
-Questions about the graph engine go to Graphify-Labs. Questions about the sqlite DAG go to Stephen Schoettler's hermes-lcm. Questions about this harvest/gather split can land here.
+Questions about the graph engine go to Graphify-Labs. Questions about the sqlite DAG go to Stephen Schoettler's hermes-lcm. Questions about this weekly-pass / gather split can land here.
