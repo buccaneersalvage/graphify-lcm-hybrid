@@ -36,6 +36,17 @@ def _ts(value) -> str:
         return ""
 
 
+def _fts_phrase(q: str) -> str:
+    """The whole query is one FTS5 phrase, so OR/NEAR and quotes stay data."""
+    return '"' + q.replace('"', '""') + '"'
+
+
+def _like(q: str) -> str:
+    """Literal LIKE pattern. Backslash, percent, and underscore are data."""
+    esc = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{esc}%"
+
+
 def main() -> int:
     q = " ".join(sys.argv[1:]).strip()
     if not q:
@@ -63,18 +74,18 @@ def main() -> int:
                     ORDER BY m.timestamp DESC
                     LIMIT ?
                     """,
-                    (q, LIMIT),
+                    (_fts_phrase(q), LIMIT),
                 ).fetchall()
             except sqlite3.OperationalError:
                 rows = conn.execute(
                     """
                     SELECT store_id, session_id, role, timestamp, source, content AS snippet
                     FROM messages
-                    WHERE content LIKE ?
+                    WHERE content LIKE ? ESCAPE '\\'
                     ORDER BY timestamp DESC
                     LIMIT ?
                     """,
-                    (f"%{q}%", LIMIT),
+                    (_like(q), LIMIT),
                 ).fetchall()
             if rows:
                 print("\n## messages")
@@ -87,11 +98,11 @@ def main() -> int:
                 """
                 SELECT node_id, session_id, depth, created_at, summary
                 FROM summary_nodes
-                WHERE summary LIKE ?
+                WHERE summary LIKE ? ESCAPE '\\'
                 ORDER BY created_at DESC
                 LIMIT ?
                 """,
-                (f"%{q}%", LIMIT),
+                (_like(q), LIMIT),
             ).fetchall()
             if rows:
                 print("\n## summaries")
