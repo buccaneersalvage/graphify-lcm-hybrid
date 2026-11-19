@@ -13,6 +13,8 @@ GitHub will not let one repo fork two parents. The engines stay on their own:
 
 Published from [BuccaneerSalvage](https://buccaneersalvage.github.io/). It does not ship anyone's private notes, chat archive, or API keys.
 
+Free to use. If it saved you time, tips are welcome: [Cash App](https://cash.app/$jollyroger1480) or Bitcoin `bc1qydycnf5pjhez5d0mrgmmumyv2g5nc63mwet89j`. More links at the [bottom](#support-and-links).
+
 ## What it does
 
 Write a durable fact once:
@@ -123,3 +125,13 @@ docs/banner.jpg   the map on this page
 Not a second Graphify. Not a second LCM. Not a dump of anyone's private notes or chat logs. If a script path looks like a personal home directory, set `MEMORY_ROOT` instead of patching it.
 
 Questions about the graph engine go to Graphify-Labs. Questions about the sqlite DAG go to Stephen Schoettler's hermes-lcm. Questions about this weekly-pass / gather split can land here.
+
+## Support and links
+
+This project is free, and a tip is welcome but never expected.
+
+- Tip (Cash App): [$jollyroger1480](https://cash.app/$jollyroger1480)
+- Bitcoin: `bc1qydycnf5pjhez5d0mrgmmumyv2g5nc63mwet89j`
+- eBay store: [Buccaneer Salvage](https://www.ebay.com/str/buccaneersalvage)
+- YouTube: [@BuccaneerSalvage](https://www.youtube.com/@BuccaneerSalvage)
+- X: [@jollyroger1480](https://x.com/jollyroger1480)
